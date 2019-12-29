@@ -1,3 +1,6 @@
+server:
+	@lein ring server
+
 docker:
 	@docker build -t alextanhongpin/clojure .
 
