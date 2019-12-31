@@ -6,10 +6,13 @@
             [hello-world.math :as math]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [clj-time.core :as time]
+            [next.jdbc :as jdbc]
+            [next.jdbc.connection :as connection]
             [buddy.sign.jwt :as jwt]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.backends.token :refer [jws-backend]]
-            [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]))
+            [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]])
+  (:import (com.mchange.v2.c3p0 ComboPooledDataSource PooledDataSource)))
 
 (def secret "mysupersecret")
 
@@ -38,6 +41,19 @@
 (defn post-handler [request]
   (let [name (get-in request [:body "name"])]
     (response {:name name})))
+
+
+(def db-spec {:dbtype "postgres" 
+         :dbname (or (System/getenv "DB_NAME") "test") 
+         :user (or (System/getenv "DB_USER") "john")
+         :password (or (System/getenv "DB_PASS") "123456")
+         :host (or (System/getenv "DB_HOST") "127.0.0.1")
+         :port (or (System/getenv "DB_PORT") 5432) })
+
+; (def ds (jdbc/get-datasource db-spec))
+; (println "query 1 + 1" (:count (jdbc/execute-one! ds ["select 1 + 1 as count"])))
+(with-open [^PooledDataSource ds (connection/->pool ComboPooledDataSource db-spec)]
+  (println "query 1 + 1:" (:count (jdbc/execute-one! ds ["select 1 + 1 as count"]))))
 
 (defroutes app-routes
   (GET "/home" [] home-handler)
